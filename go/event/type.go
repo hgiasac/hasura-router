@@ -45,7 +45,6 @@ type TableInfo struct {
 type Handler func(ctx *Context, payload EventTriggerPayload) (interface{}, error)
 
 type Context struct {
-	Headers          http.Header
-	Tracing          *tracing.Tracing
-	SessionVariables map[string]string
+	Headers http.Header
+	Tracing *tracing.Tracing
 }

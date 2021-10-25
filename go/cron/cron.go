@@ -124,5 +124,5 @@ func onError(ctx *Context, err error, metadata map[string]interface{}) {
 		log.Println(metadata)
 	}
 
-	log.Println(jsonStr)
+	log.Println(string(jsonStr))
 }

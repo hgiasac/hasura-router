@@ -68,6 +68,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		sendError(w, types.NewError(types.ErrCodeBadRequest, err.Error()))
 	}
 
+	actionContext.SessionVariables = payload.SessionVariables
 	response, err := rt.route(actionContext, payload)
 
 	if err != nil {
@@ -159,5 +160,5 @@ func onError(ctx *Context, err error, metadata map[string]interface{}) {
 		log.Println(metadata)
 	}
 
-	log.Println(jsonStr)
+	log.Println(string(jsonStr))
 }
