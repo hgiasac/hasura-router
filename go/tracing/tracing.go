@@ -42,6 +42,7 @@ func New(requestId string) *Tracing {
 
 	return &Tracing{
 		requestId: requestId,
+		fields:    make(map[string]interface{}),
 		measurement: &TimeMeasurement{
 			StartTime: time.Now(),
 		},
