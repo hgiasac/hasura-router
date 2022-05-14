@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -23,6 +24,7 @@ type actionBody struct {
 
 // Context represents an extensible action context in the actions map.
 type Context struct {
+	context.Context
 	Headers          http.Header
 	SessionVariables map[string]string
 	Tracing          *tracing.Tracing

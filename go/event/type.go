@@ -1,18 +1,31 @@
 package event
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
 	"github.com/hgiasac/hasura-router/go/tracing"
 )
 
+// OpName represents the name of the operation
+type OpName string
+
+const (
+	OpInsert OpName = "INSERT"
+	OpUpdate OpName = "UPDATE"
+	OpDelete OpName = "DELETE"
+	OpManual OpName = "MANUAL"
+)
+
+// EventTriggerPayload represents Hasura event trigger payload
+// https://hasura.io/docs/latest/graphql/core/event-triggers/payload/
 type EventTriggerPayload struct {
 	Event        Event        `json:"event"`
 	CreatedAt    string       `json:"created_at"`
 	ID           string       `json:"id"`
-	TriggerInfo  TriggerInfo  `json:"trigger"`
-	TableInfo    TableInfo    `json:"table"`
+	Trigger      TriggerInfo  `json:"trigger"`
+	Table        EventTable   `json:"table"`
 	DeliveryInfo DeliveryInfo `json:"delivery_info"`
 }
 
@@ -23,7 +36,7 @@ type DeliveryInfo struct {
 
 type Event struct {
 	SessionVariables map[string]string `json:"session_variables"`
-	OP               string            `json:"op"`
+	OP               OpName            `json:"op"`
 	Data             EventData         `json:"data"`
 }
 
@@ -37,14 +50,17 @@ type TriggerInfo struct {
 	ID   string `json:"id"`
 }
 
-type TableInfo struct {
+type EventTable struct {
 	Schema string `json:"schema"`
 	Name   string `json:"name"`
 }
 
+// Handler represents the event handler to be executed.
 type Handler func(ctx *Context, payload EventTriggerPayload) (interface{}, error)
 
+// Context represents an extensible event context.
 type Context struct {
+	context.Context
 	Headers http.Header
 	Tracing *tracing.Tracing
 }

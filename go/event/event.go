@@ -53,7 +53,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	tracer.SetRequestId(payload.ID)
 	tracer.WithFields(map[string]interface{}{
-		"event_name":        payload.TriggerInfo.Name,
+		"event_name":        payload.Trigger.Name,
 		"op":                payload.Event.OP,
 		"session_variables": payload.Event.SessionVariables,
 	})
@@ -82,9 +82,9 @@ func (rt *Router) route(ctx *Context, payload EventTriggerPayload) ([]byte, erro
 		return nil, fmt.Errorf("there should be at least one event handler")
 	}
 
-	handler, ok := rt.handlers[payload.TriggerInfo.Name]
+	handler, ok := rt.handlers[payload.Trigger.Name]
 	if !ok {
-		return nil, fmt.Errorf("unknown event %s", payload.TriggerInfo.Name)
+		return nil, fmt.Errorf("unknown event %s", payload.Trigger.Name)
 	}
 
 	resp, err := handler(ctx, payload)

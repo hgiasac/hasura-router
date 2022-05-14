@@ -1,6 +1,7 @@
 package cron
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/hgiasac/hasura-router/go/tracing"
 )
 
+// EventPayload represents Hasura schedule cron payload
 type EventPayload struct {
 	ID            string          `json:"id"`
 	Name          string          `json:"name"`
@@ -15,9 +17,12 @@ type EventPayload struct {
 	Payload       json.RawMessage `json:"payload"`
 }
 
+// Handler represents the event handler to be executed.
 type Handler func(ctx *Context, payload EventPayload) (interface{}, error)
 
+// Context represents an extensible event context.
 type Context struct {
+	context.Context
 	Headers http.Header
 	Tracing *tracing.Tracing
 }
