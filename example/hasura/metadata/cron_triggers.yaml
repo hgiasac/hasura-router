@@ -1,0 +1,12 @@
+- name: goCronFailure
+  webhook: '{{WEBHOOK_GO_BASE_URL}}/crons'
+  schedule: '* * * * *'
+  include_in_metadata: true
+  payload: {}
+  comment: ""
+- name: goCronSuccess
+  webhook: '{{WEBHOOK_GO_BASE_URL}}/crons'
+  schedule: '* * * * *'
+  include_in_metadata: true
+  payload: {}
+  comment: ""

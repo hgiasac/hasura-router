@@ -47,7 +47,6 @@ type EventData struct {
 
 type TriggerInfo struct {
 	Name string `json:"name"`
-	ID   string `json:"id"`
 }
 
 type EventTable struct {

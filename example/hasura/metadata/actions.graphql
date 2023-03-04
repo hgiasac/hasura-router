@@ -1,0 +1,14 @@
+type Mutation {
+  goFailure: MessageOutput
+}
+
+type Query {
+  goHello(
+    message: String
+  ): MessageOutput
+}
+
+type MessageOutput {
+  message: String!
+}
+
