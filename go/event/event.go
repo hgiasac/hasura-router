@@ -85,16 +85,17 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := validateSessionVariables(payload.Event.SessionVariables); err != nil {
 		rt.onError(eventContext, err, tracer.Values())
 		sendError(w, types.ErrCodeBadRequest, err)
+		return
 	}
 
 	resp, err := rt.route(eventContext, payload)
+	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
 		rt.onError(eventContext, err, tracer.Values())
 		sendError(w, types.ErrCodeBadRequest, err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
 
@@ -140,12 +141,13 @@ func onSuccess(ctx *Context, response interface{}, metadata map[string]interface
 	metadata["level"] = "info"
 	metadata["message"] = "executed action successfully"
 
-	jsonStr, err := json.Marshal(metadata)
+	jsonBytes, err := json.Marshal(metadata)
 	if err != nil {
 		log.Println(metadata)
+		return
 	}
 
-	log.Println(jsonStr)
+	log.Println(string(jsonBytes))
 }
 
 func onError(ctx *Context, err error, metadata map[string]interface{}) {
@@ -153,12 +155,13 @@ func onError(ctx *Context, err error, metadata map[string]interface{}) {
 	metadata["error"] = err
 	metadata["message"] = err.Error()
 
-	jsonStr, err := json.Marshal(metadata)
+	jsonBytes, err := json.Marshal(metadata)
 	if err != nil {
 		log.Println(metadata)
+		return
 	}
 
-	log.Println(string(jsonStr))
+	log.Println(string(jsonBytes))
 }
 
 func validateSessionVariables(variables map[string]string) error {

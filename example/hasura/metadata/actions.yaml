@@ -1,0 +1,15 @@
+actions:
+  - name: goFailure
+    definition:
+      kind: synchronous
+      handler: '{{WEBHOOK_GO_BASE_URL}}/actions'
+  - name: goHello
+    definition:
+      kind: ""
+      handler: '{{WEBHOOK_GO_BASE_URL}}/actions'
+custom_types:
+  enums: []
+  input_objects: []
+  objects:
+    - name: MessageOutput
+  scalars: []

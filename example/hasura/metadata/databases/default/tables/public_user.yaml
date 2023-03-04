@@ -1,0 +1,36 @@
+table:
+  name: user
+  schema: public
+event_triggers:
+  - name: goUserInsert
+    definition:
+      enable_manual: false
+      insert:
+        columns: '*'
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{WEBHOOK_GO_BASE_URL}}/events'
+  - name: goUserUpdate
+    definition:
+      enable_manual: false
+      update:
+        columns: '*'
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{WEBHOOK_GO_BASE_URL}}/events'
+    request_transform:
+      body:
+        action: transform
+        template: |-
+          {
+            "table": {
+              "name": {{$body.table.name}},
+              "schema": {{$body.table.schema}}
+            }
+          }
+      template_engine: Kriti
+      version: 2
