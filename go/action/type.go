@@ -20,6 +20,7 @@ type actionBody struct {
 	Action           bodyAction        `json:"action"`
 	Input            json.RawMessage   `json:"input"` // This can be serialized into appropriate input type
 	SessionVariables map[string]string `json:"session_variables"`
+	RequestQuery     string            `json:"request_query"`
 }
 
 // Context represents an extensible action context in the actions map.
@@ -28,6 +29,7 @@ type Context struct {
 	Headers          http.Header
 	SessionVariables map[string]string
 	Tracing          *tracing.Tracing
+	RequestQuery     string
 }
 
 // Action represents the action to be executed.

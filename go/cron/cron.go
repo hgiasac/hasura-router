@@ -10,12 +10,15 @@ import (
 	"github.com/hgiasac/hasura-router/go/types"
 )
 
+// Router represent a generic event trigger http handler
 type Router struct {
 	handlers  map[string]Handler
 	onSuccess func(ctx *Context, response interface{}, metadata map[string]interface{})
 	onError   func(ctx *Context, err error, metadata map[string]interface{})
+	debug     bool
 }
 
+// New create an Hasura cron trigger router
 func New(handlers map[string]Handler) *Router {
 	return &Router{
 		handlers:  handlers,
@@ -24,14 +27,23 @@ func New(handlers map[string]Handler) *Router {
 	}
 }
 
+// WithDebug set debug mode to add input data to the tracing context
+func (rt *Router) WithDebug(debug bool) *Router {
+	rt.debug = debug
+	return rt
+}
+
+// OnSuccess set a function to handle success callback
 func (rt *Router) OnSuccess(callback func(ctx *Context, response interface{}, metadata map[string]interface{})) {
 	rt.onSuccess = callback
 }
 
+// OnError set a function to handle error callback
 func (rt *Router) OnError(callback func(ctx *Context, err error, metadata map[string]interface{})) {
 	rt.onError = callback
 }
 
+// ServeHTTP implements the serving http interface
 func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	requestId := r.Header.Get(types.XRequestId)
@@ -54,7 +66,14 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tracer.SetRequestId(input.ID)
-	tracer.WithField("event_name", input.Name)
+	tracer = tracer.WithFields(map[string]interface{}{
+		"event_name":     input.Name,
+		"scheduled_time": input.ScheduledTime,
+	})
+
+	if rt.debug {
+		tracer = tracer.WithField("payload", string(input.Payload))
+	}
 
 	resp, err := rt.route(eventContext, input)
 	if err != nil {
@@ -97,6 +116,7 @@ func sendError(w http.ResponseWriter, code string, err error) {
 
 	if err != nil {
 		w.Write([]byte(fmt.Sprintf(`{ "message": "ERROR: %s" }`, err)))
+		return
 	}
 
 	w.Write(responseBytes)

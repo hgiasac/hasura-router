@@ -16,9 +16,10 @@ type Router struct {
 	actions   map[ActionName]Action
 	onSuccess func(ctx *Context, response interface{}, metadata map[string]interface{})
 	onError   func(ctx *Context, err error, metadata map[string]interface{})
+	debug     bool
 }
 
-// New create Hasura action router
+// New create an Hasura action router
 func New(actions map[ActionName]Action) (*Router, error) {
 	if len(actions) == 0 {
 		return nil, errors.New("there should be at least one action")
@@ -31,14 +32,23 @@ func New(actions map[ActionName]Action) (*Router, error) {
 	}, nil
 }
 
+// WithDebug set debug mode to add input data to the tracing context
+func (rt *Router) WithDebug(debug bool) *Router {
+	rt.debug = debug
+	return rt
+}
+
+// OnSuccess set a function to handle success callback
 func (rt *Router) OnSuccess(callback func(ctx *Context, response interface{}, metadata map[string]interface{})) {
 	rt.onSuccess = callback
 }
 
+// OnError set a function to handle error callback
 func (rt *Router) OnError(callback func(ctx *Context, err error, metadata map[string]interface{})) {
 	rt.onError = callback
 }
 
+// ServeHTTP implements the serving http interface
 func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	requestId := r.Header.Get(types.XRequestId)
@@ -61,7 +71,14 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	tracer.WithFields(map[string]interface{}{
 		"action":            payload.Action.Name,
 		"session_variables": payload.SessionVariables,
+		"request_query":     payload.RequestQuery,
 	})
+
+	if rt.debug {
+		tracer = tracer.WithField("input", string(payload.Input))
+	}
+
+	actionContext.RequestQuery = payload.RequestQuery
 
 	if err := validateSessionVariables(payload.SessionVariables); err != nil {
 		rt.onError(actionContext, err, tracer.Values())
@@ -111,19 +128,14 @@ func sendError(w http.ResponseWriter, err error) {
 	var actionError types.Error
 
 	if ok := errors.As(err, &actionError); !ok {
-		actionError = types.Error{
-			Code:    types.ErrCodeUnknown,
-			Message: err.Error(),
-		}
+		actionError = types.NewError(types.ErrCodeUnknown, err.Error())
 	}
 
-	responseBytes, err := json.Marshal(map[string]string{
-		"code":    actionError.Code,
-		"message": actionError.Message,
-	})
+	responseBytes, err := json.Marshal(actionError)
 
 	if err != nil {
 		w.Write([]byte(fmt.Sprintf(`{ "message": "ERROR: %s" }`, err)))
+		return
 	}
 
 	w.Write(responseBytes)
@@ -133,7 +145,7 @@ func validateSessionVariables(variables map[string]string) error {
 	role, hasRole := variables[types.XHasuraRole]
 
 	if !hasRole || role == "" {
-		return fmt.Errorf("%s header is required", types.XHasuraRole)
+		return fmt.Errorf("%s session variable is required", types.XHasuraRole)
 	}
 	return nil
 }

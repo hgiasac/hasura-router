@@ -10,12 +10,15 @@ import (
 	"github.com/hgiasac/hasura-router/go/types"
 )
 
+// Router represent a generic event trigger http handler
 type Router struct {
 	handlers  map[string]Handler
 	onSuccess func(ctx *Context, response interface{}, metadata map[string]interface{})
 	onError   func(ctx *Context, err error, metadata map[string]interface{})
+	debug     bool
 }
 
+// New create an Hasura event trigger router
 func New(handlers map[string]Handler) *Router {
 	return &Router{
 		handlers:  handlers,
@@ -24,14 +27,23 @@ func New(handlers map[string]Handler) *Router {
 	}
 }
 
+// WithDebug set debug mode to add input data to the tracing context
+func (rt *Router) WithDebug(debug bool) *Router {
+	rt.debug = debug
+	return rt
+}
+
+// OnSuccess set a function to handle success callback
 func (rt *Router) OnSuccess(callback func(ctx *Context, response interface{}, metadata map[string]interface{})) {
 	rt.onSuccess = callback
 }
 
+// OnError set a function to handle error callback
 func (rt *Router) OnError(callback func(ctx *Context, err error, metadata map[string]interface{})) {
 	rt.onError = callback
 }
 
+// ServeHTTP implements the serving http interface
 func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	requestId := r.Header.Get(types.XRequestId)
@@ -56,7 +68,19 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"event_name":        payload.Trigger.Name,
 		"op":                payload.Event.OP,
 		"session_variables": payload.Event.SessionVariables,
+		"table_schema":      payload.Table.Schema,
+		"table_name":        payload.Table.Name,
+		"created_at":        payload.CreatedAt,
+		"max_retries":       payload.DeliveryInfo.MaxRetries,
+		"current_retry":     payload.DeliveryInfo.CurrentRetry,
 	})
+
+	if rt.debug {
+		tracer = tracer.WithFields(map[string]interface{}{
+			"data_old": string(payload.Event.Data.Old),
+			"data_new": string(payload.Event.Data.New),
+		})
+	}
 
 	if err := validateSessionVariables(payload.Event.SessionVariables); err != nil {
 		rt.onError(eventContext, err, tracer.Values())
@@ -98,13 +122,15 @@ func (rt *Router) route(ctx *Context, payload EventTriggerPayload) ([]byte, erro
 func sendError(w http.ResponseWriter, code string, err error) {
 	w.WriteHeader(400)
 
-	responseBytes, err := json.Marshal(map[string]string{
+	responseBytes, err := json.Marshal(map[string]interface{}{
 		"code":    code,
 		"message": err.Error(),
+		"error":   err,
 	})
 
 	if err != nil {
 		w.Write([]byte(fmt.Sprintf(`{ "message": "ERROR: %s" }`, err)))
+		return
 	}
 
 	w.Write(responseBytes)
@@ -139,7 +165,7 @@ func validateSessionVariables(variables map[string]string) error {
 	role, hasRole := variables[types.XHasuraRole]
 
 	if !hasRole || role == "" {
-		return fmt.Errorf("%s header is required", types.XHasuraRole)
+		return fmt.Errorf("%s session variable is required", types.XHasuraRole)
 	}
 	return nil
 }
