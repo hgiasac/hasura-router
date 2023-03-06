@@ -75,7 +75,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		tracer = tracer.WithField("payload", string(input.Payload))
 	}
 
-	resp, err := rt.route(eventContext, input)
+	jsonBytes, resp, err := rt.route(eventContext, input)
 	w.Header().Set("Content-Type", "application/json")
 
 	if err != nil {
@@ -85,26 +85,31 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	w.Write(jsonBytes)
 	rt.onSuccess(eventContext, resp, tracer.Values())
 }
 
-func (rt *Router) route(ctx *Context, input EventPayload) ([]byte, error) {
+func (rt *Router) route(ctx *Context, input EventPayload) ([]byte, interface{}, error) {
 	if rt.handlers == nil {
-		return nil, fmt.Errorf("there should be at least one event handler")
+		return nil, nil, fmt.Errorf("there should be at least one event handler")
 	}
 
 	handler, ok := rt.handlers[input.Name]
 	if !ok {
-		return nil, fmt.Errorf("unknown event %s", input.Name)
+		return nil, nil, fmt.Errorf("unknown event %s", input.Name)
 	}
 
 	resp, err := handler(ctx, input)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return json.Marshal(resp)
+	bytes, jsonErr := json.Marshal(resp)
+	if jsonErr != nil {
+		return nil, nil, types.NewError(types.ErrCodeInternal, jsonErr.Error())
+	}
+
+	return bytes, resp, nil
 }
 
 func sendError(w http.ResponseWriter, code string, err error) {

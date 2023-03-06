@@ -87,7 +87,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	actionContext.SessionVariables = payload.SessionVariables
-	response, err := rt.route(actionContext, payload)
+	jsonBytes, response, err := rt.route(actionContext, payload)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
@@ -97,29 +97,29 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(response)
+	w.Write(jsonBytes)
 
 	rt.onSuccess(actionContext, response, tracer.Values())
 }
 
-func (rt *Router) route(ctx *Context, payload actionBody) ([]byte, error) {
+func (rt *Router) route(ctx *Context, payload actionBody) ([]byte, interface{}, error) {
 
 	execute, ok := rt.actions[ActionName(payload.Action.Name)]
 	if !ok {
-		return nil, types.NewError(types.ErrCodeNotFound, fmt.Sprintf("unknown action %s", payload.Action.Name))
+		return nil, nil, types.NewError(types.ErrCodeNotFound, fmt.Sprintf("unknown action %s", payload.Action.Name))
 	}
 
 	resp, err := execute(ctx, payload.Input)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	bytes, jsonErr := json.Marshal(resp)
 	if jsonErr != nil {
-		return nil, types.NewError(types.ErrCodeInternal, jsonErr.Error())
+		return nil, nil, types.NewError(types.ErrCodeInternal, jsonErr.Error())
 	}
 
-	return bytes, nil
+	return bytes, resp, nil
 }
 
 func sendError(w http.ResponseWriter, err error) {
