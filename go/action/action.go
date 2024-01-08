@@ -86,7 +86,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actionContext.SessionVariables = payload.SessionVariables
+	actionContext.SessionVariables = types.NewSessionVariables(payload.SessionVariables)
 	jsonBytes, response, err := rt.route(actionContext, payload)
 
 	w.Header().Set("Content-Type", "application/json")

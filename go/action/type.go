@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/hgiasac/hasura-router/go/tracing"
+	"github.com/hgiasac/hasura-router/go/types"
 )
 
 // ActionName represents an extensible action name in the actions map.
@@ -27,7 +28,7 @@ type actionBody struct {
 type Context struct {
 	context.Context
 	Headers          http.Header
-	SessionVariables map[string]string
+	SessionVariables types.SessionVariables
 	Tracing          *tracing.Tracing
 	RequestQuery     string
 }
