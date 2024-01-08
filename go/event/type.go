@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/hgiasac/hasura-router/go/tracing"
+	"github.com/hgiasac/hasura-router/go/types"
 )
 
 // OpName represents the name of the operation
@@ -35,9 +36,9 @@ type DeliveryInfo struct {
 }
 
 type Event struct {
-	SessionVariables map[string]string `json:"session_variables"`
-	OP               OpName            `json:"op"`
-	Data             EventData         `json:"data"`
+	SessionVariables types.SessionVariables `json:"session_variables"`
+	OP               OpName                 `json:"op"`
+	Data             EventData              `json:"data"`
 }
 
 type EventData struct {
